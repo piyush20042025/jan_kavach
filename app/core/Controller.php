@@ -23,6 +23,7 @@ class Controller
      */
     protected function view(string $template, array $data = [], ?string $layout = 'layouts/app'): void
     {
+        $data['scopeLabel'] = $data['scopeLabel'] ?? Scope::label();
         View::display($template, $data, $layout);
     }
 
@@ -31,11 +32,13 @@ class Controller
      */
     protected function bare(string $template, array $data = [], ?string $layout = null): void
     {
+        $data['scopeLabel'] = $data['scopeLabel'] ?? Scope::label();
         View::display($template, $data, $layout);
     }
 
     protected function display(string $template, array $data = [], ?string $layout = 'layouts/app'): void
     {
+        $data['scopeLabel'] = $data['scopeLabel'] ?? Scope::label();
         View::display($template, $data, $layout);
     }
 
