@@ -1,0 +1,19 @@
+# Logs and Cache
+storage/logs/*.log
+storage/logs/php-error.log
+
+# Uploaded documents and temporary files
+storage/documents/*
+!storage/documents/.gitkeep
+storage/imports/*
+!storage/imports/.gitkeep
+storage/exports/*
+!storage/exports/.gitkeep
+
+# IDE and OS files
+.idea/
+.vscode/
+*.swp
+*~
+.DS_Store
+Thumbs.db

@@ -1,0 +1,75 @@
+# =====================================================================
+# JAN KAVACH - public/.htaccess
+# =====================================================================
+
+<IfModule mod_rewrite.c>
+
+    RewriteEngine On
+
+    # Authorization header
+    RewriteCond %{HTTP:Authorization} .
+    RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+
+    # Serve existing files/directories directly
+    RewriteCond %{REQUEST_FILENAME} -f [OR]
+    RewriteCond %{REQUEST_FILENAME} -d
+    RewriteRule ^ - [L]
+
+    # Send all other requests to Laravel
+    RewriteRule ^ index.php [L]
+
+</IfModule>
+
+<IfModule !mod_rewrite.c>
+    DirectoryIndex index.php
+</IfModule>
+
+# ---------------------------------------------------------------------
+# Security headers
+# ---------------------------------------------------------------------
+
+<IfModule mod_headers.c>
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set X-Frame-Options "SAMEORIGIN"
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
+    Header always unset X-Powered-By
+</IfModule>
+
+# ---------------------------------------------------------------------
+# Static asset caching
+# ---------------------------------------------------------------------
+
+<IfModule mod_expires.c>
+
+    ExpiresActive On
+
+    ExpiresByType text/css "access plus 1 month"
+    ExpiresByType application/javascript "access plus 1 month"
+    ExpiresByType text/javascript "access plus 1 month"
+
+    ExpiresByType image/png "access plus 1 year"
+    ExpiresByType image/jpeg "access plus 1 year"
+    ExpiresByType image/svg+xml "access plus 1 year"
+
+    ExpiresByType font/woff2 "access plus 1 year"
+    ExpiresByType image/x-icon "access plus 1 year"
+
+</IfModule>
+
+# ---------------------------------------------------------------------
+# Compression
+# ---------------------------------------------------------------------
+
+<IfModule mod_deflate.c>
+
+    AddOutputFilterByType DEFLATE text/html
+    AddOutputFilterByType DEFLATE text/plain
+    AddOutputFilterByType DEFLATE text/css
+    AddOutputFilterByType DEFLATE text/javascript
+    AddOutputFilterByType DEFLATE application/javascript
+    AddOutputFilterByType DEFLATE application/json
+    AddOutputFilterByType DEFLATE image/svg+xml
+
+</IfModule>
+
+Options -Indexes
