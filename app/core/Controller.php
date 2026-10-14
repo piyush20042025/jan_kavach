@@ -2,12 +2,10 @@
 namespace JanKavach\Core;
 
 /**
- * Base controller for the application.
- *
- * Most controllers only need a typed Request and a few convenience wrappers
- * around the JSON and view helpers in the core layer.
+ * Base controller.  Gives every controller the request, a view() helper that
+ * injects the shared layout data, plus validation / JSON / redirect shortcuts.
  */
-class Controller
+abstract class Controller
 {
     protected Request $request;
     protected Database $db;
@@ -18,140 +16,212 @@ class Controller
         $this->db      = Database::getInstance();
     }
 
-    /**
-     * Render and display a view inside a layout.
-     */
-    protected function view(string $template, array $data = [], ?string $layout = 'layouts/app'): void
-    {
-        $data['appName']    = $data['appName']    ?? Config::get('app.name', 'Jan Kavach');
-        $data['appTagline'] = $data['appTagline'] ?? Config::get('app.tagline', 'Connecting Citizens with Social Security Schemes');
-        $data['appVersion'] = $data['appVersion'] ?? Config::get('app.version', '1.0.0');
-        $data['authUser']   = $data['authUser']   ?? Auth::user();
-        $data['scopeLabel'] = $data['scopeLabel'] ?? Scope::label();
+    // ------------------------------------------------------------------
+    // Rendering
+    // ------------------------------------------------------------------
 
-        View::display($template, $data, $layout);
+    /** Render a view inside the application layout. */
+    protected function view(string $view, array $data = [], ?string $layout = 'layouts/app'): void
+    {
+        $data = array_merge($this->layoutData(), $data);
+        View::display($view, $data, $layout);
     }
 
-    /**
-     * Render and display a bare view without standard admin layout (or with a custom layout).
-     */
-    protected function bare(string $template, array $data = [], ?string $layout = null): void
+    /** Render without the admin chrome (login, print views). */
+    protected function bare(string $view, array $data = [], ?string $layout = 'layouts/blank'): void
     {
-        $data['appName']    = $data['appName']    ?? Config::get('app.name', 'Jan Kavach');
-        $data['appTagline'] = $data['appTagline'] ?? Config::get('app.tagline', 'Connecting Citizens with Social Security Schemes');
-        $data['appVersion'] = $data['appVersion'] ?? Config::get('app.version', '1.0.0');
-        $data['authUser']   = $data['authUser']   ?? Auth::user();
-        $data['scopeLabel'] = $data['scopeLabel'] ?? Scope::label();
-
-        View::display($template, $data, $layout);
+        $data = array_merge($this->layoutData(), $data);
+        View::display($view, $data, $layout);
     }
 
-    protected function display(string $template, array $data = [], ?string $layout = 'layouts/app'): void
+    /** Data every page needs: current user, flash messages, nav counters. */
+    protected function layoutData(): array
     {
-        $this->view($template, $data, $layout);
-    }
-
-    /**
-     * Standard filters extracted from query params and scoped to the user.
-     */
-    protected function filters(): array
-    {
-        $stateId    = $this->request->int('state_id');
-        $districtId = $this->request->int('district_id');
-        [$stateId, $districtId] = Scope::constrainFilters($stateId, $districtId);
-
         return [
-            'search'            => $this->request->filled('search') ? (string)$this->request->input('search') : null,
-            'state_id'          => $stateId,
-            'district_id'       => $districtId,
-            'block_id'          => $this->request->int('block_id'),
-            'gram_panchayat_id' => $this->request->int('gram_panchayat_id'),
-            'village_id'        => $this->request->int('village_id'),
-            'field_user_id'     => $this->request->int('field_user_id'),
-            'scheme_id'         => $this->request->int('scheme_id'),
-            'theme_id'          => $this->request->int('theme_id'),
-            'gender'            => $this->inOrNull('gender', ['Male', 'Female', 'Other']),
-            'area_type'         => $this->inOrNull('area_type', ['Rural', 'Urban']),
-            'date_from'         => $this->dateOrNull('date_from'),
-            'date_to'           => $this->dateOrNull('date_to'),
+            'authUser'      => Auth::user(),
+            'flashMessages' => Flash::pull(),
+            'errors'        => Flash::errors(),
+            'old'           => Flash::oldInput(),
+            'appName'       => Config::get('app.name'),
+            'appTagline'    => Config::get('app.tagline'),
+            'appVersion'    => Config::get('app.version'),
+            'scopeLabel'    => Auth::check() ? Scope::label() : '',
+            'currentPath'   => $this->request->path(),
         ];
     }
 
-    /**
-     * Sort resolution against an allowed column map.
-     */
-    protected function sort(array $allowed, string $defaultKey, string $defaultDir = 'ASC'): array
-    {
-        $sortKey = (string)$this->request->input('sort', $defaultKey);
-        $dir     = strtoupper((string)$this->request->input('dir', $defaultDir));
-        if (!in_array($dir, ['ASC', 'DESC'], true)) {
-            $dir = $defaultDir;
-        }
-        $column = $allowed[$sortKey] ?? ($allowed[$defaultKey] ?? reset($allowed));
-        return [$column, $dir, $sortKey];
-    }
-
-    protected function inOrNull(string $key, array $allowed): ?string
-    {
-        $val = $this->request->input($key);
-        return ($val !== null && in_array((string)$val, $allowed, true)) ? (string)$val : null;
-    }
-
-    protected function dateOrNull(string $key): ?string
-    {
-        $val = trim((string)$this->request->input($key, ''));
-        if ($val === '') {
-            return null;
-        }
-        $d = \DateTime::createFromFormat('Y-m-d', $val);
-        return ($d && $d->format('Y-m-d') === $val) ? $val : null;
-    }
-
-    protected function findOrFail(?array $entity, string $label = 'Record'): array
-    {
-        if (!$entity) {
-            Response::abort(404, "{$label} not found.");
-        }
-        return $entity;
-    }
-
-    protected function backWithErrors(array $errors, string $fallback = '/'): void
-    {
-        Flash::setValidationErrors($errors);
-        Flash::setOldInput($this->request->all());
-        $this->back($fallback);
-    }
+    // ------------------------------------------------------------------
+    // Responses
+    // ------------------------------------------------------------------
 
     protected function json($data, int $status = 200): void
     {
         Response::json($data, $status);
     }
 
-    protected function jsonSuccess($data = null, string $message = 'OK', int $status = 200): void
+    protected function jsonSuccess($data = null, string $message = 'OK'): void
     {
-        Response::success($data, $message, $status);
+        Response::success($data, $message);
     }
 
-    protected function jsonError(string $message = 'Request failed', $errors = null, int $status = 400): void
+    protected function jsonError(string $message, $errors = null, int $status = 400): void
     {
         Response::error($message, $errors, $status);
     }
 
-    protected function redirect(string $url, int $status = 302): void
+    protected function redirect(string $path, int $status = 302): void
     {
-        if (!preg_match('#^https?://#i', $url)) {
-            $url = url($url);
-        }
-        Response::redirect($url, $status);
+        Response::to($path, $status);
     }
 
-    protected function back(string $fallback = '/'): void
+    protected function back(string $fallback = '/dashboard'): void
     {
         Response::back($fallback);
     }
 
-    protected function abort(int $status, string $message = ''): void
+    /** Redirect with a success flash. */
+    protected function redirectWithSuccess(string $path, string $message): void
     {
-        Response::abort($status, $message);
+        Flash::success($message);
+        $this->redirect($path);
+    }
+
+    protected function redirectWithError(string $path, string $message): void
+    {
+        Flash::error($message);
+        $this->redirect($path);
+    }
+
+    /**
+     * Bounce back to the form with the errors and the submitted values so
+     * the user does not have to retype anything.
+     */
+    protected function backWithErrors(array $errors, string $fallback = '/dashboard'): void
+    {
+        Flash::setErrors($errors);
+        Flash::setOldInput($this->request->all());
+        Flash::error('Please correct the highlighted fields and try again.');
+        $this->back($fallback);
+    }
+
+    // ------------------------------------------------------------------
+    // Validation
+    // ------------------------------------------------------------------
+
+    /**
+     * Validate the request. On failure: answers JSON for AJAX, otherwise
+     * redirects back with errors. Returns the validated data on success.
+     */
+    protected function validate(array $rules, array $labels = [], string $fallback = '/dashboard'): array
+    {
+        $validator = Validator::make($this->request->all(), $rules, $labels);
+
+        if ($validator->fails()) {
+            if ($this->request->isAjax()) {
+                $this->jsonError('Validation failed. Please check the form.', $validator->firstErrors(), 422);
+            }
+            $this->backWithErrors($validator->firstErrors(), $fallback);
+        }
+        return $validator->validated();
+    }
+
+    /** Validate without the automatic redirect, for custom handling. */
+    protected function validator(array $rules, array $labels = []): Validator
+    {
+        return Validator::make($this->request->all(), $rules, $labels);
+    }
+
+    // ------------------------------------------------------------------
+    // Authorisation shortcuts
+    // ------------------------------------------------------------------
+
+    protected function authorize(string $permission, string $message = ''): void
+    {
+        Auth::authorize($permission, $message);
+    }
+
+    protected function can(string $permission): bool
+    {
+        return Auth::can($permission);
+    }
+
+    /** 404 unless the row exists. */
+    protected function findOrFail(?array $row, string $what = 'Record'): array
+    {
+        if (!$row) {
+            if ($this->request->isAjax()) {
+                $this->jsonError($what . ' not found.', null, 404);
+            }
+            Response::abort(404, $what . ' not found.');
+        }
+        return $row;
+    }
+
+    // ------------------------------------------------------------------
+    // Common request parsing
+    // ------------------------------------------------------------------
+
+    /**
+     * Read the standard dashboard/report filters, clamped to what the
+     * signed-in user is allowed to see.
+     */
+    protected function filters(array $extra = []): array
+    {
+        $stateId    = $this->request->int('state_id');
+        $districtId = $this->request->int('district_id');
+        [$stateId, $districtId] = Scope::constrainFilters($stateId, $districtId);
+
+        $filters = [
+            'date_from'         => $this->dateOrNull('date_from'),
+            'date_to'           => $this->dateOrNull('date_to'),
+            'state_id'          => $stateId,
+            'district_id'       => $districtId,
+            'block_id'          => $this->request->int('block_id'),
+            'scheme_id'         => $this->request->int('scheme_id'),
+            'theme_id'          => $this->request->int('theme_id'),
+            'scheme_level'      => $this->inOrNull('scheme_level', ['National', 'State', 'National+State']),
+            'beneficiary_type_id' => $this->request->int('beneficiary_type_id'),
+            'status_id'         => $this->request->int('status_id'),
+            'gender'            => $this->inOrNull('gender', ['Male', 'Female', 'Other']),
+            'area_type'         => $this->inOrNull('area_type', ['Rural', 'Urban']),
+            'field_user_id'     => $this->request->int('field_user_id'),
+            'search'            => $this->request->filled('search') ? (string)$this->request->input('search') : null,
+        ];
+
+        foreach ($extra as $key => $default) {
+            $filters[$key] = $this->request->filled($key) ? $this->request->input($key) : $default;
+        }
+        return $filters;
+    }
+
+    /** A date filter, normalised to Y-m-d, or null when absent/invalid. */
+    protected function dateOrNull(string $key): ?string
+    {
+        if (!$this->request->filled($key)) {
+            return null;
+        }
+        $value = (string)$this->request->input($key);
+        $time  = strtotime($value);
+        return $time === false ? null : date('Y-m-d', $time);
+    }
+
+    /** Only accept a value from a whitelist - never trust request enums. */
+    protected function inOrNull(string $key, array $allowed): ?string
+    {
+        $value = $this->request->input($key);
+        return ($value !== null && $value !== '' && in_array((string)$value, $allowed, true)) ? (string)$value : null;
+    }
+
+    /** Resolve a sort column against a whitelist map. */
+    protected function sort(array $allowed, string $default, string $defaultDir = 'ASC'): array
+    {
+        $key = (string)$this->request->input('sort', $default);
+        $dir = strtoupper((string)$this->request->input('dir', $defaultDir)) === 'DESC' ? 'DESC' : 'ASC';
+
+        $column = $allowed[$key] ?? $allowed[$default] ?? null;
+        if ($column === null) {
+            throw new \RuntimeException('No default sort column configured.');
+        }
+        return [$column, $dir, $key];
     }
 }
