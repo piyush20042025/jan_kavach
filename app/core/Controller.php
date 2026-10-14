@@ -139,6 +139,9 @@ class Controller
 
     protected function redirect(string $url, int $status = 302): void
     {
+        if (!preg_match('#^https?://#i', $url)) {
+            $url = url($url);
+        }
         Response::redirect($url, $status);
     }
 
