@@ -79,6 +79,10 @@ $router->group(
                     '/beneficiaries/{id}/eligible-schemes',
                     [EligibleSchemesController::class, 'show']
                 );
+                $router->get(
+                    '/beneficiaries/{id}/eligible-schemes/next',
+                    [EligibleSchemesController::class, 'show']
+                );
                 $router->post(
                     '/beneficiaries/{id}/eligible-schemes',
                     [EligibleSchemesController::class, 'match']
