@@ -113,6 +113,11 @@ class Controller
         $this->back($fallback);
     }
 
+    protected function json($data, int $status = 200): void
+    {
+        Response::json($data, $status);
+    }
+
     protected function jsonSuccess($data = null, string $message = 'OK', int $status = 200): void
     {
         Response::success($data, $message, $status);
