@@ -23,7 +23,12 @@ class Controller
      */
     protected function view(string $template, array $data = [], ?string $layout = 'layouts/app'): void
     {
+        $data['appName']    = $data['appName']    ?? Config::get('app.name', 'Jan Kavach');
+        $data['appTagline'] = $data['appTagline'] ?? Config::get('app.tagline', 'Connecting Citizens with Social Security Schemes');
+        $data['appVersion'] = $data['appVersion'] ?? Config::get('app.version', '1.0.0');
+        $data['authUser']   = $data['authUser']   ?? Auth::user();
         $data['scopeLabel'] = $data['scopeLabel'] ?? Scope::label();
+
         View::display($template, $data, $layout);
     }
 
@@ -32,14 +37,18 @@ class Controller
      */
     protected function bare(string $template, array $data = [], ?string $layout = null): void
     {
+        $data['appName']    = $data['appName']    ?? Config::get('app.name', 'Jan Kavach');
+        $data['appTagline'] = $data['appTagline'] ?? Config::get('app.tagline', 'Connecting Citizens with Social Security Schemes');
+        $data['appVersion'] = $data['appVersion'] ?? Config::get('app.version', '1.0.0');
+        $data['authUser']   = $data['authUser']   ?? Auth::user();
         $data['scopeLabel'] = $data['scopeLabel'] ?? Scope::label();
+
         View::display($template, $data, $layout);
     }
 
     protected function display(string $template, array $data = [], ?string $layout = 'layouts/app'): void
     {
-        $data['scopeLabel'] = $data['scopeLabel'] ?? Scope::label();
-        View::display($template, $data, $layout);
+        $this->view($template, $data, $layout);
     }
 
     /**
