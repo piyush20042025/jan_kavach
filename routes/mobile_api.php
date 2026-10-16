@@ -15,6 +15,7 @@ use JanKavach\Controllers\mobile_api\BeneficiaryRegistrationController;
 use JanKavach\Controllers\mobile_api\EligibleSchemesController;
 use JanKavach\Controllers\mobile_api\MobileSchemeController;
 use JanKavach\Controllers\mobile_api\GeographyController;
+use JanKavach\Controllers\mobile_api\MobileFollowupController;
 
 
 /** @var JanKavach\Core\Router $router */
@@ -108,6 +109,33 @@ $router->group(
                 $router->get('/geography/gram-panchayats/{blockId}', [GeographyController::class, 'gramPanchayats']);
                 $router->get('/geography/villages/{gpId}', [GeographyController::class, 'villages']);
                 $router->get('/geography/villages-by-block/{blockId}', [GeographyController::class, 'villagesByBlock']);
+
+                /*
+                |--------------------------------------------------------------------------
+                | Mobile Scheme Follow-up Module
+                |--------------------------------------------------------------------------
+                */
+                $router->get('/followup/dashboard', [MobileFollowupController::class, 'dashboard']);
+                $router->get('/followups/dashboard', [MobileFollowupController::class, 'dashboard']);
+
+                $router->get('/followup/register', [MobileFollowupController::class, 'register']);
+                $router->get('/followups/register', [MobileFollowupController::class, 'register']);
+                $router->get('/followup', [MobileFollowupController::class, 'register']);
+                $router->get('/followups', [MobileFollowupController::class, 'register']);
+
+                $router->get('/followup/beneficiaries', [MobileFollowupController::class, 'register']);
+                $router->get('/followups/beneficiaries', [MobileFollowupController::class, 'register']);
+                $router->get('/followup/beneficiaries/{id}', [MobileFollowupController::class, 'beneficiary']);
+                $router->get('/followups/beneficiaries/{id}', [MobileFollowupController::class, 'beneficiary']);
+
+                $router->post('/followup/record', [MobileFollowupController::class, 'record']);
+                $router->post('/followups/record', [MobileFollowupController::class, 'record']);
+
+                $router->get('/followup/document-types', [MobileFollowupController::class, 'documentTypes']);
+                $router->get('/followups/document-types', [MobileFollowupController::class, 'documentTypes']);
+
+                $router->get('/followup/schemes/{id}/documents', [MobileFollowupController::class, 'schemeDocuments']);
+                $router->get('/followups/schemes/{id}/documents', [MobileFollowupController::class, 'schemeDocuments']);
 
                 $router->post(
                     '/auth/logout',
