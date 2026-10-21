@@ -94,8 +94,9 @@ class EligibleSchemesService
         // Summary counts for this beneficiary.
         $summary = $this->matchSummary($beneficiaryId);
 
-        // Fetch ONLY 'Eligible' schemes.
-        $rows = $this->fetchEligibleSchemeMatches($beneficiaryId);
+        // Fetch matching schemes ordered strictly by priority (Priority 1 first, Priority 2 second, Priority NULL last).
+        $statusFilter = (string) ($payload['status'] ?? ($_GET['status'] ?? 'Eligible'));
+        $rows = $this->fetchEligibleSchemeMatches($beneficiaryId, $statusFilter);
         $eligibleSchemes = array_map([$this, 'formatSchemeMatch'], $rows);
 
         return [
@@ -157,18 +158,19 @@ class EligibleSchemesService
              LEFT JOIN districts d ON d.id = b.district_id
              LEFT JOIN villages v ON v.id = b.village_id
              WHERE b.id = :beneficiary_id
-               AND b.field_user_id = :user_id
+               AND (b.field_user_id = :user_id OR b.created_by = :user_id2)
                AND b.deleted_at IS NULL
              LIMIT 1',
             [
                 'beneficiary_id' => $beneficiaryId,
                 'user_id' => $userId,
+                'user_id2' => $userId,
             ]
         );
     }
 
     /**
-     * Count stored matches for the beneficiary (focusing on Eligible schemes).
+     * Count stored matches for the beneficiary.
      */
     private function matchSummary(int $beneficiaryId): array
     {
@@ -187,6 +189,9 @@ class EligibleSchemesService
 
         $totalEvaluated = 0;
         $eligibleCount = 0;
+        $potentialCount = 0;
+        $verifyCount = 0;
+        $notEligibleCount = 0;
 
         foreach ($rows as $row) {
             $count = (int) $row['total'];
@@ -194,20 +199,44 @@ class EligibleSchemesService
 
             if ($row['eligibility_status'] === EligibilityEngine::ELIGIBLE) {
                 $eligibleCount = $count;
+            } elseif ($row['eligibility_status'] === EligibilityEngine::POTENTIAL) {
+                $potentialCount = $count;
+            } elseif ($row['eligibility_status'] === EligibilityEngine::VERIFY) {
+                $verifyCount = $count;
+            } elseif ($row['eligibility_status'] === EligibilityEngine::NOT) {
+                $notEligibleCount = $count;
             }
         }
 
         return [
             'total_evaluated' => $totalEvaluated,
             'eligible_count' => $eligibleCount,
+            'potential_count' => $potentialCount,
+            'verify_count' => $verifyCount,
+            'not_eligible_count' => $notEligibleCount,
         ];
     }
 
     /**
-     * Query ONLY 'Eligible' scheme matches for the beneficiary.
+     * Query matching schemes for the beneficiary ordered strictly by priority:
+     * Priority ID 1 first, Priority ID 2 second, ascending for other non-null priority IDs,
+     * NULL priority IDs last, with secondary tie-break on match percentage and scheme ID.
      */
-    private function fetchEligibleSchemeMatches(int $beneficiaryId): array
+    private function fetchEligibleSchemeMatches(int $beneficiaryId, string $statusFilter = 'Eligible'): array
     {
+        $statusClause = "AND m.eligibility_status = 'Eligible'";
+        $normalized = strtolower(trim($statusFilter));
+
+        if ($normalized === 'all') {
+            $statusClause = "AND m.eligibility_status <> 'Not Eligible'";
+        } elseif ($normalized === 'positive' || $normalized === 'both') {
+            $statusClause = "AND m.eligibility_status IN ('Eligible', 'Potentially Eligible')";
+        } elseif ($normalized === 'potentially eligible' || $normalized === 'potential') {
+            $statusClause = "AND m.eligibility_status = 'Potentially Eligible'";
+        } elseif ($normalized === 'needs verification' || $normalized === 'verify') {
+            $statusClause = "AND m.eligibility_status = 'Needs Verification'";
+        }
+
         return $this->db->select(
             "SELECT
                 m.id AS match_id,
@@ -252,6 +281,7 @@ class EligibleSchemesService
                 th.name AS theme_name,
                 th.color AS theme_color,
                 th.icon AS theme_icon,
+                s.priority_id,
                 pl.name AS priority_name,
                 pl.rank_value AS priority_rank,
                 sa.name AS service_approach,
@@ -272,10 +302,12 @@ class EligibleSchemesService
              WHERE m.beneficiary_id = :beneficiary_id
                AND m.is_dismissed = 0
                AND s.deleted_at IS NULL
-               AND m.eligibility_status = 'Eligible'
+               {$statusClause}
              ORDER BY
+               CASE WHEN s.priority_id IS NULL THEN 1 ELSE 0 END ASC,
+               s.priority_id ASC,
                m.match_percent DESC,
-               s.name ASC",
+               s.id ASC",
             ['beneficiary_id' => $beneficiaryId]
         );
     }
@@ -305,6 +337,7 @@ class EligibleSchemesService
                 'icon' => $row['theme_icon'],
             ],
             'priority' => [
+                'id' => $row['priority_id'] !== null ? (int) $row['priority_id'] : null,
                 'name' => $row['priority_name'],
                 'rank' => $row['priority_rank'] !== null ? (int) $row['priority_rank'] : null,
             ],
