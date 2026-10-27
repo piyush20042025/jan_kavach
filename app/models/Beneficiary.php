@@ -310,8 +310,17 @@ class Beneficiary extends Model
         if ($onlyPositive) {
             $sql .= " AND m.eligibility_status <> 'Not Eligible'";
         }
-        $sql .= " ORDER BY FIELD(m.eligibility_status,'Eligible','Potentially Eligible','Needs Verification','Not Eligible'),
-                           m.match_percent DESC, s.name";
+        $sql .= " ORDER BY
+                           FIELD(
+                               m.eligibility_status,
+                               'Eligible',
+                               'Potentially Eligible',
+                               'Needs Verification',
+                               'Not Eligible'
+                           ) ASC,
+                           CASE WHEN s.priority_id IS NULL THEN 1 ELSE 0 END ASC,
+                           s.priority_id ASC,
+                           s.id ASC";
 
         return $this->db->select($sql, ['id' => $beneficiaryId]);
     }

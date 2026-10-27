@@ -304,9 +304,15 @@ class EligibleSchemesService
                AND s.deleted_at IS NULL
                {$statusClause}
              ORDER BY
+               FIELD(
+                   m.eligibility_status,
+                   'Eligible',
+                   'Potentially Eligible',
+                   'Needs Verification',
+                   'Not Eligible'
+               ) ASC,
                CASE WHEN s.priority_id IS NULL THEN 1 ELSE 0 END ASC,
                s.priority_id ASC,
-               m.match_percent DESC,
                s.id ASC",
             ['beneficiary_id' => $beneficiaryId]
         );
