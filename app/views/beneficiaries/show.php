@@ -214,7 +214,7 @@ require VIEW_PATH . '/partials/page-head.php'; ?>
                                     <?php endif; ?>
                                 </div></div>
                             <div class="jk-dl__row"><div class="jk-dl__key">Record Created</div>
-                                <div class="jk-dl__val"><?= fmt_datetime($beneficiary['created_at']) ?>
+                                <div class="jk-dl__val"><?= (!empty($beneficiary['created_at']) && !str_starts_with((string)$beneficiary['created_at'], '0000')) ? (new DateTimeImmutable($beneficiary['created_at'], new DateTimeZone('UTC')))->setTimezone(new DateTimeZone('Asia/Kolkata'))->format('d-m-Y h:i A') : '-' ?>
                                     <?php if (!empty($beneficiary['created_by_name'])): ?>
                                         <span class="d-block text-subtle tiny">by <?= e($beneficiary['created_by_name']) ?></span>
                                     <?php endif; ?>
