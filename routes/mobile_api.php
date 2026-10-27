@@ -108,6 +108,7 @@ $router->group(
                 $router->get('/geography/blocks/{districtId}', [GeographyController::class, 'blocks']);
                 $router->get('/geography/gram-panchayats/{blockId}', [GeographyController::class, 'gramPanchayats']);
                 $router->get('/geography/villages/{gpId}', [GeographyController::class, 'villages']);
+                $router->get('/geography/master-data', [GeographyController::class, 'masterData']);
                 $router->get('/geography/villages-by-block/{blockId}', [GeographyController::class, 'villagesByBlock']);
 
                 /*
