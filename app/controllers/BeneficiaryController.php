@@ -43,7 +43,7 @@ class BeneficiaryController extends Controller
     public function index(): void
     {
         $filters = $this->beneficiaryFilters();
-        [$column, $dir, $sortKey] = $this->sort(Beneficiary::SORTS, 'registered', 'DESC');
+        [$column, $dir, $sortKey] = $this->sort(Beneficiary::SORTS, 'created', 'DESC');
 
         $paginator = $this->beneficiaries->paginate(
             $filters,
@@ -72,7 +72,7 @@ class BeneficiaryController extends Controller
     {
         $format  = $this->inOrNull('format', ['excel', 'csv', 'pdf']) ?? 'excel';
         $filters = $this->beneficiaryFilters();
-        [$column, $dir] = $this->sort(Beneficiary::SORTS, 'registered', 'DESC');
+        [$column, $dir] = $this->sort(Beneficiary::SORTS, 'created', 'DESC');
 
         $rows = $this->beneficiaries->allFiltered($filters, $column, $dir);
 

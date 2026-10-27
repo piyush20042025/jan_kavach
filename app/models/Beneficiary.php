@@ -40,6 +40,8 @@ class Beneficiary extends Model
         'schemes'    => 'v.schemes_identified',
         'field_user' => 'v.field_user_name',
         'updated'    => 'v.updated_at',
+        'created'    => 'v.created_at',
+        'created_at' => 'v.created_at',
     ];
 
     // =================================================================
