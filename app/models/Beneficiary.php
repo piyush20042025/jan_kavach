@@ -23,7 +23,7 @@ class Beneficiary extends Model
         'state_id', 'district_id', 'block_id', 'gram_panchayat_id', 'village_id',
         'village_name', 'post_office', 'address_line', 'pincode', 'area_type', 'photo_path',
         'record_status', 'assessment_status', 'last_assessed_at', 'last_matched_at',
-        'consent_given', 'consent_date', 'field_user_id', 'remarks',
+        'consent_given', 'consent_date', 'field_user_id', 'remarks', 'privacy_consent',
     ];
 
     public const SORTS = [

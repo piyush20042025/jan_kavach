@@ -101,9 +101,9 @@ class BeneficiaryRegistrationController extends Controller
                 $districtId,
                 !empty($data['block_id']) ? (int) $data['block_id'] : null,
                 !empty($data['gram_panchayat_id'])
-                    ? (int) $data['gram_panchayat_id'] : null,
+                ? (int) $data['gram_panchayat_id'] : null,
                 !empty($data['village_id'])
-                    ? (int) $data['village_id'] : null
+                ? (int) $data['village_id'] : null
             );
 
             if ($chainErrors) {
@@ -294,6 +294,12 @@ class BeneficiaryRegistrationController extends Controller
             'consent_date' => $consent ? date('Y-m-d') : null,
             'field_user_id' => $userId,
             'remarks' => $data['remarks'] ?? null,
+            'privacy_consent' => isset($data['consent_given'])
+                ? (int) filter_var(
+                    $data['consent_given'],
+                    FILTER_VALIDATE_BOOLEAN
+                )
+                : 0,
         ];
 
         try {
@@ -484,7 +490,7 @@ class BeneficiaryRegistrationController extends Controller
         }
 
         $prefix = $matches[1];
-        $width  = strlen($matches[2]);
+        $width = strlen($matches[2]);
 
         // Escape LIKE wildcards (% and _) in the prefix.
         $likePrefix = addcslashes($prefix, '\\%_') . '%';

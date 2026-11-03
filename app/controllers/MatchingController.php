@@ -157,7 +157,7 @@ class MatchingController extends Controller
     public function index(): void
     {
         $filters = $this->matchFilters();
-        [$column, $dir, $sortKey] = $this->sort(Beneficiary::SORTS, 'registered', 'DESC');
+        [$column, $dir, $sortKey] = $this->sort(Beneficiary::SORTS, 'created', 'DESC');
 
         $paginator = $this->beneficiaries->paginate(
             $filters,

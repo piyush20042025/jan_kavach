@@ -185,6 +185,7 @@ require VIEW_PATH . '/partials/page-head.php'; ?>
                             <th><?= sort_link('District', 'district', $sortKey, $sortDir) ?></th>
                             <th><?= sort_link('Village', 'village', $sortKey, $sortDir) ?></th>
                             <th><?= sort_link('Registered', 'registered', $sortKey, $sortDir) ?></th>
+                            <th><?= sort_link('Created', 'created', $sortKey, $sortDir) ?></th>
                             <th><?= sort_link('Assessment', 'assessment', $sortKey, $sortDir) ?></th>
                             <th class="num"><?= sort_link('Schemes', 'schemes', $sortKey, $sortDir) ?></th>
                             <th class="num">Apps</th>
@@ -214,6 +215,7 @@ require VIEW_PATH . '/partials/page-head.php'; ?>
                                 <td><?= e($beneficiary['district_name'] ?? '-') ?></td>
                                 <td class="text-muted"><?= e(str_limit($beneficiary['village_name'] ?? '-', 22)) ?></td>
                                 <td class="nowrap"><?= fmt_date($beneficiary['registration_date']) ?></td>
+                                <td class="nowrap"><?= fmt_date($beneficiary['created_at']) ?></td>
                                 <td>
                                     <?= badge($beneficiary['assessment_status'],
                                               $beneficiary['assessment_status'] === 'Completed' ? 'success'
