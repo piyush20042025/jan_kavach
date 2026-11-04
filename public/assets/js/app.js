@@ -250,7 +250,7 @@
       button.dataset.bound = '1';
 
       button.addEventListener('click', function () {
-        const input = button.parentElement.querySelector('input');
+        const input = button.closest('.jk-password-wrap').querySelector('input');
         if (!input) return;
         const showing = input.type === 'text';
         input.type = showing ? 'password' : 'text';
