@@ -16,6 +16,7 @@ use JanKavach\Controllers\mobile_api\EligibleSchemesController;
 use JanKavach\Controllers\mobile_api\MobileSchemeController;
 use JanKavach\Controllers\mobile_api\GeographyController;
 use JanKavach\Controllers\mobile_api\MobileFollowupController;
+use JanKavach\Controllers\mobile_api\BeneficiaryDocumentController;
 
 
 /** @var JanKavach\Core\Router $router */
@@ -71,6 +72,18 @@ $router->group(
                 $router->get(
                     '/beneficiaries/{id}',
                     [BeneficiaryDetailController::class, 'show']
+                );
+                $router->get(
+                    '/beneficiaries/{beneficiary_id}/documents',
+                    [BeneficiaryDocumentController::class, 'index']
+                );
+                $router->get(
+                    '/beneficiaries/{beneficiary_id}/documents/{document_id}/file',
+                    [BeneficiaryDocumentController::class, 'file']
+                );
+                $router->get(
+                    '/documents/{document_id}/file',
+                    [BeneficiaryDocumentController::class, 'file']
                 );
                 $router->post(
                     '/beneficiaries',
