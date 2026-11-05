@@ -105,6 +105,27 @@ class ApiBeneficiaryController extends Controller
                 'pincode'         => $beneficiary['pincode'],
                 'area_type'       => $beneficiary['area_type'],
             ],
+            'same_as_permanent_address' => (bool)$beneficiary['same_as_permanent_address'],
+            'address_line'    => $beneficiary['address_line'],
+            'post_office'     => $beneficiary['post_office'],
+            'current_address' => [
+                'same_as_permanent' => (bool)$beneficiary['same_as_permanent_address'],
+                'state'             => $beneficiary['current_state_name'],
+                'state_id'          => $beneficiary['current_state_id'] !== null ? (int)$beneficiary['current_state_id'] : null,
+                'district'          => $beneficiary['current_district_name'],
+                'district_id'       => $beneficiary['current_district_id'] !== null ? (int)$beneficiary['current_district_id'] : null,
+                'block'             => $beneficiary['current_block_name'],
+                'block_id'          => $beneficiary['current_block_id'] !== null ? (int)$beneficiary['current_block_id'] : null,
+                'gram_panchayat'    => $beneficiary['current_gp_name'],
+                'gram_panchayat_id' => $beneficiary['current_gram_panchayat_id'] !== null ? (int)$beneficiary['current_gram_panchayat_id'] : null,
+                'village'           => $beneficiary['current_village_display'],
+                'village_id'        => $beneficiary['current_village_id'] !== null ? (int)$beneficiary['current_village_id'] : null,
+                'village_name'      => $beneficiary['current_village_name'],
+                'post_office'       => $beneficiary['current_post_office'],
+                'address_line'      => $beneficiary['current_address_line'],
+                'pincode'           => $beneficiary['current_pincode'],
+                'area_type'         => $beneficiary['current_area_type'],
+            ],
             'household' => $beneficiary['household'],
             'members'   => $beneficiary['members'],
             'status'     => $beneficiary['record_status'],
@@ -171,6 +192,53 @@ class ApiBeneficiaryController extends Controller
             ], 409);
         }
 
+        $sameAsPermanent = $this->request->has('same_as_permanent_address')
+            ? $this->request->bool('same_as_permanent_address')
+            : (empty($this->request->input('current_state_id')) && empty($this->request->input('current_district_id')));
+
+        if ($sameAsPermanent) {
+            $currentStateId     = $stateId;
+            $currentDistrictId  = $districtId;
+            $currentBlockId     = $this->request->int('block_id');
+            $currentGpId        = $this->request->int('gram_panchayat_id');
+            $currentVillageId   = $this->request->int('village_id');
+            $currentVillageName = $this->request->input('village_name') ?: null;
+            $currentPostOffice  = $this->request->input('post_office') ?: null;
+            $currentAddressLine = $this->request->input('address_line') ?: null;
+            $currentPincode     = $this->request->input('pincode') ?: null;
+            $currentAreaType    = (string)$this->request->input('area_type', 'Rural');
+        } else {
+            $currentStateId     = $this->request->int('current_state_id') ?: null;
+            $currentDistrictId  = $this->request->int('current_district_id') ?: null;
+            $currentBlockId     = $this->request->int('current_block_id') ?: null;
+            $currentGpId        = $this->request->int('current_gram_panchayat_id') ?: null;
+            $currentVillageId   = $this->request->int('current_village_id') ?: null;
+            $currentVillageName = $this->request->input('current_village_name') ?: null;
+            $currentPostOffice  = $this->request->input('current_post_office') ?: null;
+            $currentAddressLine = $this->request->input('current_address_line') ?: null;
+            $currentPincode     = $this->request->input('current_pincode') ?: null;
+            $currentAreaType    = (string)$this->request->input('current_area_type', 'Rural');
+
+            if (!$currentStateId) {
+                $this->jsonError('Validation failed.', ['current_state_id' => 'Current State is required.'], 422);
+            }
+            if (!$currentDistrictId) {
+                $this->jsonError('Validation failed.', ['current_district_id' => 'Current District is required.'], 422);
+            }
+
+            $currentChainErrors = (new Geography())->validateChain(
+                $currentStateId, $currentDistrictId,
+                $currentBlockId, $currentGpId, $currentVillageId
+            );
+            if ($currentChainErrors) {
+                $prefixed = [];
+                foreach ($currentChainErrors as $k => $v) {
+                    $prefixed['current_' . $k] = $v;
+                }
+                $this->jsonError('The current geography selection is inconsistent.', $prefixed, 422);
+            }
+        }
+
         $data = [
             'beneficiary_code'  => $this->beneficiaries->nextBeneficiaryCode($stateId),
             'registration_date' => $this->dateOrNull('registration_date') ?: date('Y-m-d'),
@@ -181,6 +249,7 @@ class ApiBeneficiaryController extends Controller
             'mother_name'       => $this->request->input('mother_name') ?: null,
             'spouse_name'       => $this->request->input('spouse_name') ?: null,
             'post_office'       => $this->request->input('post_office') ?: null,
+            'address_line'      => $this->request->input('address_line') ?: null,
             'gender'            => (string)$this->request->input('gender'),
             'dob'               => $dob,
             'age'               => $age,
@@ -196,6 +265,17 @@ class ApiBeneficiaryController extends Controller
             'village_name'      => $this->request->input('village_name') ?: null,
             'pincode'           => $this->request->input('pincode') ?: null,
             'area_type'         => (string)$this->request->input('area_type'),
+            'same_as_permanent_address' => $sameAsPermanent ? 1 : 0,
+            'current_state_id'          => $currentStateId,
+            'current_district_id'       => $currentDistrictId,
+            'current_block_id'          => $currentBlockId,
+            'current_gram_panchayat_id' => $currentGpId,
+            'current_village_id'        => $currentVillageId,
+            'current_village_name'      => $currentVillageName,
+            'current_post_office'       => $currentPostOffice,
+            'current_address_line'      => $currentAddressLine,
+            'current_pincode'           => $currentPincode,
+            'current_area_type'         => $currentAreaType,
             'consent_given'     => $this->request->bool('consent_given') ? 1 : 0,
             'field_user_id'     => Auth::id(),
         ];
@@ -220,7 +300,11 @@ class ApiBeneficiaryController extends Controller
 
         $allowed = ['name', 'relation_type', 'relation_name', 'father_name', 'mother_name',
                     'spouse_name', 'mobile', 'alt_mobile', 'pincode', 'address_line',
-                    'area_type', 'village_name', 'post_office', 'remarks'];
+                    'area_type', 'village_name', 'post_office', 'remarks',
+                    'same_as_permanent_address', 'current_state_id', 'current_district_id',
+                    'current_block_id', 'current_gram_panchayat_id', 'current_village_id',
+                    'current_village_name', 'current_post_office', 'current_address_line',
+                    'current_pincode', 'current_area_type'];
 
         $data = [];
         foreach ($allowed as $field) {
@@ -230,6 +314,23 @@ class ApiBeneficiaryController extends Controller
         }
         if ($data === []) {
             $this->jsonError('Nothing to update.', null, 422);
+        }
+
+        if (isset($data['same_as_permanent_address'])) {
+            $same = filter_var($data['same_as_permanent_address'], FILTER_VALIDATE_BOOLEAN);
+            $data['same_as_permanent_address'] = $same ? 1 : 0;
+            if ($same) {
+                $data['current_state_id']          = $data['state_id'] ?? $beneficiary['state_id'];
+                $data['current_district_id']       = $data['district_id'] ?? $beneficiary['district_id'];
+                $data['current_block_id']          = array_key_exists('block_id', $data) ? $data['block_id'] : $beneficiary['block_id'];
+                $data['current_gram_panchayat_id'] = array_key_exists('gram_panchayat_id', $data) ? $data['gram_panchayat_id'] : $beneficiary['gram_panchayat_id'];
+                $data['current_village_id']        = array_key_exists('village_id', $data) ? $data['village_id'] : $beneficiary['village_id'];
+                $data['current_village_name']      = array_key_exists('village_name', $data) ? $data['village_name'] : $beneficiary['village_name'];
+                $data['current_post_office']       = array_key_exists('post_office', $data) ? $data['post_office'] : $beneficiary['post_office'];
+                $data['current_address_line']      = array_key_exists('address_line', $data) ? $data['address_line'] : $beneficiary['address_line'];
+                $data['current_pincode']           = array_key_exists('pincode', $data) ? $data['pincode'] : $beneficiary['pincode'];
+                $data['current_area_type']         = $data['area_type'] ?? $beneficiary['area_type'];
+            }
         }
 
         $before = $beneficiary;

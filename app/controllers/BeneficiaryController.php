@@ -555,16 +555,22 @@ class BeneficiaryController extends Controller
 
     private function formData(?array $beneficiary): array
     {
-        $stateId    = $beneficiary['state_id'] ?? Auth::stateId();
-        $districtId = $beneficiary['district_id'] ?? Auth::districtId();
+        $stateId           = $beneficiary['state_id'] ?? Auth::stateId();
+        $districtId        = $beneficiary['district_id'] ?? Auth::districtId();
+        $currentStateId    = $beneficiary['current_state_id'] ?? null;
+        $currentDistrictId = $beneficiary['current_district_id'] ?? null;
 
         return [
-            'states'     => $this->geo->stateOptions(),
-            'districts'  => $this->geo->districtOptions($stateId ? (int)$stateId : null),
-            'blocks'     => $this->geo->blocks($districtId ? (int)$districtId : null),
-            'gps'        => $this->geo->gramPanchayats($beneficiary['block_id'] ?? null),
-            'villages'   => $this->geo->villages($beneficiary['gram_panchayat_id'] ?? null),
-            'fieldUsers' => (new User())->fieldUsers($stateId ? (int)$stateId : null, $districtId ? (int)$districtId : null),
+            'states'           => $this->geo->stateOptions(),
+            'districts'        => $this->geo->districtOptions($stateId ? (int)$stateId : null),
+            'blocks'           => $this->geo->blocks($districtId ? (int)$districtId : null),
+            'gps'              => $this->geo->gramPanchayats($beneficiary['block_id'] ?? null),
+            'villages'         => $this->geo->villages($beneficiary['gram_panchayat_id'] ?? null),
+            'currentDistricts' => $this->geo->districtOptions($currentStateId ? (int)$currentStateId : null),
+            'currentBlocks'    => $this->geo->blocks($currentDistrictId ? (int)$currentDistrictId : null),
+            'currentGps'       => !empty($beneficiary['current_block_id']) ? $this->geo->gramPanchayats((int)$beneficiary['current_block_id']) : [],
+            'currentVillages'  => !empty($beneficiary['current_gram_panchayat_id']) ? $this->geo->villages((int)$beneficiary['current_gram_panchayat_id']) : [],
+            'fieldUsers'       => (new User())->fieldUsers($stateId ? (int)$stateId : null, $districtId ? (int)$districtId : null),
             'members'    => $beneficiary['members'] ?? [],
 
             // The profile questionnaire is captured during registration, from
@@ -664,6 +670,59 @@ class BeneficiaryController extends Controller
             }
         }
 
+        // Current Address: if same_as_permanent_address is checked, mirror permanent address;
+        // otherwise validate independent current address fields.
+        $sameAsPermanent = $this->request->bool('same_as_permanent_address');
+
+        if ($sameAsPermanent) {
+            $currentStateId     = $stateId;
+            $currentDistrictId  = $districtId;
+            $currentBlockId     = $this->request->int('block_id');
+            $currentGpId        = $this->request->int('gram_panchayat_id');
+            $currentVillageId   = $this->request->int('village_id');
+            $currentVillageName = $this->request->post('village_name') ?: null;
+            $currentPostOffice  = $this->request->post('post_office') ?: null;
+            $currentAddressLine = $this->request->post('address_line') ?: null;
+            $currentPincode     = $this->request->post('pincode') ?: null;
+            $currentAreaType    = (string)$this->request->post('area_type', 'Rural');
+        } else {
+            $currentStateId     = $this->request->int('current_state_id') ?: null;
+            $currentDistrictId  = $this->request->int('current_district_id') ?: null;
+            $currentBlockId     = $this->request->int('current_block_id') ?: null;
+            $currentGpId        = $this->request->int('current_gram_panchayat_id') ?: null;
+            $currentVillageId   = $this->request->int('current_village_id') ?: null;
+            $currentVillageName = $this->request->post('current_village_name') ?: null;
+            $currentPostOffice  = $this->request->post('current_post_office') ?: null;
+            $currentAddressLine = $this->request->post('current_address_line') ?: null;
+            $currentPincode     = $this->request->post('current_pincode') ?: null;
+            $currentAreaType    = (string)$this->request->post('current_area_type', 'Rural');
+
+            if (!$currentStateId) {
+                $this->backWithErrors(['current_state_id' => 'Current State is required.'], $fallback);
+            }
+            if (!$currentDistrictId) {
+                $this->backWithErrors(['current_district_id' => 'Current District is required.'], $fallback);
+            }
+            if ($currentPincode && !preg_match('/^[1-9][0-9]{5}$/', $currentPincode)) {
+                $this->backWithErrors(['current_pincode' => 'Current PIN code must be a 6-digit number.'], $fallback);
+            }
+
+            $currentChainErrors = $this->geo->validateChain(
+                $currentStateId,
+                $currentDistrictId,
+                $currentBlockId,
+                $currentGpId,
+                $currentVillageId
+            );
+            if ($currentChainErrors) {
+                $prefixed = [];
+                foreach ($currentChainErrors as $k => $v) {
+                    $prefixed['current_' . $k] = $v;
+                }
+                $this->backWithErrors($prefixed, $fallback);
+            }
+        }
+
         $data = [
             'registration_date' => $this->dateOrNull('registration_date') ?: date('Y-m-d'),
             'name'              => (string)$this->request->post('name'),
@@ -690,6 +749,17 @@ class BeneficiaryController extends Controller
             'address_line'      => $this->request->post('address_line') ?: null,
             'pincode'           => $this->request->post('pincode') ?: null,
             'area_type'         => (string)$this->request->post('area_type', 'Rural'),
+            'same_as_permanent_address' => $sameAsPermanent ? 1 : 0,
+            'current_state_id'          => $currentStateId,
+            'current_district_id'       => $currentDistrictId,
+            'current_block_id'          => $currentBlockId,
+            'current_gram_panchayat_id' => $currentGpId,
+            'current_village_id'        => $currentVillageId,
+            'current_village_name'      => $currentVillageName,
+            'current_post_office'       => $currentPostOffice,
+            'current_address_line'      => $currentAddressLine,
+            'current_pincode'           => $currentPincode,
+            'current_area_type'         => $currentAreaType,
             'consent_given'     => $this->request->bool('consent_given') ? 1 : 0,
             'consent_date'      => $this->request->bool('consent_given') ? date('Y-m-d') : null,
             'field_user_id'     => $this->request->int('field_user_id') ?: Auth::id(),

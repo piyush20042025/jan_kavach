@@ -22,8 +22,11 @@ class Beneficiary extends Model
         'aadhaar_last4', 'aadhaar_hash', 'has_aadhaar',
         'state_id', 'district_id', 'block_id', 'gram_panchayat_id', 'village_id',
         'village_name', 'post_office', 'address_line', 'pincode', 'area_type', 'photo_path',
+        'same_as_permanent_address',
+        'current_state_id', 'current_district_id', 'current_block_id', 'current_gram_panchayat_id', 'current_village_id',
+        'current_village_name', 'current_post_office', 'current_address_line', 'current_pincode', 'current_area_type',
         'record_status', 'assessment_status', 'last_assessed_at', 'last_matched_at',
-        'consent_given', 'consent_date', 'field_user_id', 'remarks', 'privacy_consent',
+        'consent_given', 'consent_date', 'field_user_id', 'remarks',
     ];
 
     public const SORTS = [
@@ -177,17 +180,25 @@ class Beneficiary extends Model
             'SELECT b.*, st.name AS state_name, d.name AS district_name,
                     bl.name AS block_name, gp.name AS gp_name,
                     COALESCE(v.name, b.village_name) AS village_display, v.pincode AS village_pincode,
+                    cst.name AS current_state_name, cd.name AS current_district_name,
+                    cbl.name AS current_block_name, cgp.name AS current_gp_name,
+                    COALESCE(cv.name, b.current_village_name) AS current_village_display, cv.pincode AS current_village_pincode,
                     fu.full_name AS field_user_name, fu.mobile AS field_user_mobile,
                     cu.full_name AS created_by_name, uu.full_name AS updated_by_name
                FROM beneficiaries b
-               LEFT JOIN states st         ON st.id = b.state_id
-               LEFT JOIN districts d       ON d.id  = b.district_id
-               LEFT JOIN blocks bl         ON bl.id = b.block_id
-               LEFT JOIN gram_panchayats gp ON gp.id = b.gram_panchayat_id
-               LEFT JOIN villages v        ON v.id  = b.village_id
-               LEFT JOIN users fu          ON fu.id = b.field_user_id
-               LEFT JOIN users cu          ON cu.id = b.created_by
-               LEFT JOIN users uu          ON uu.id = b.updated_by
+               LEFT JOIN states st          ON st.id  = b.state_id
+               LEFT JOIN districts d        ON d.id   = b.district_id
+               LEFT JOIN blocks bl          ON bl.id  = b.block_id
+               LEFT JOIN gram_panchayats gp  ON gp.id  = b.gram_panchayat_id
+               LEFT JOIN villages v         ON v.id   = b.village_id
+               LEFT JOIN states cst         ON cst.id = b.current_state_id
+               LEFT JOIN districts cd       ON cd.id  = b.current_district_id
+               LEFT JOIN blocks cbl         ON cbl.id = b.current_block_id
+               LEFT JOIN gram_panchayats cgp ON cgp.id = b.current_gram_panchayat_id
+               LEFT JOIN villages cv        ON cv.id  = b.current_village_id
+               LEFT JOIN users fu           ON fu.id  = b.field_user_id
+               LEFT JOIN users cu           ON cu.id  = b.created_by
+               LEFT JOIN users uu           ON uu.id  = b.updated_by
               WHERE b.id = :id AND b.deleted_at IS NULL',
             ['id' => $id]
         );

@@ -76,6 +76,14 @@ $router->group(
                     '/beneficiaries',
                     [BeneficiaryRegistrationController::class, 'store']
                 );
+                $router->put(
+                    '/beneficiaries/{id}',
+                    [BeneficiaryRegistrationController::class, 'update']
+                );
+                $router->post(
+                    '/beneficiaries/{id}',
+                    [BeneficiaryRegistrationController::class, 'update']
+                );
                 $router->get(
                     '/beneficiaries/{id}/eligible-schemes',
                     [EligibleSchemesController::class, 'show']

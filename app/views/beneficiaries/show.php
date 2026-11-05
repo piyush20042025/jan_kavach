@@ -187,7 +187,7 @@ require VIEW_PATH . '/partials/page-head.php'; ?>
 
             <div class="col-lg-6">
                 <div class="jk-card h-100">
-                    <div class="jk-card__head"><h3 class="jk-card__title"><i class="bi bi-geo-alt"></i>Address &amp; Collection</h3></div>
+                    <div class="jk-card__head"><h3 class="jk-card__title"><i class="bi bi-geo-alt"></i>Permanent Address</h3></div>
                     <div class="jk-card__body">
                         <div class="jk-dl">
                             <div class="jk-dl__row"><div class="jk-dl__key">State</div>
@@ -202,15 +202,77 @@ require VIEW_PATH . '/partials/page-head.php'; ?>
                                 <div class="jk-dl__val"><?= e($beneficiary['village_display'] ?? '-') ?></div></div>
                             <div class="jk-dl__row"><div class="jk-dl__key">Address</div>
                                 <div class="jk-dl__val"><?= e($beneficiary['address_line'] ?? '-') ?></div></div>
+                            <div class="jk-dl__row"><div class="jk-dl__key">Post Office</div>
+                                <div class="jk-dl__val"><?= e($beneficiary['post_office'] ?? '-') ?></div></div>
                             <div class="jk-dl__row"><div class="jk-dl__key">PIN Code</div>
                                 <div class="jk-dl__val"><?= e($beneficiary['pincode'] ?? '-') ?></div></div>
                             <div class="jk-dl__row"><div class="jk-dl__key">Rural / Urban</div>
-                                <div class="jk-dl__val"><?= e($beneficiary['area_type']) ?></div></div>
+                                <div class="jk-dl__val"><?= e($beneficiary['area_type'] ?? '-') ?></div></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Current Address -->
+            <div class="col-lg-6">
+                <div class="jk-card h-100">
+                    <div class="jk-card__head">
+                        <h3 class="jk-card__title"><i class="bi bi-geo"></i>Current Address</h3>
+                    </div>
+                    <div class="jk-card__body">
+                        <?php $isSame = (int)($beneficiary['same_as_permanent_address'] ?? 0) === 1; ?>
+                        <div class="jk-dl">
+                            <div class="jk-dl__row">
+                                <div class="jk-dl__key">Same as Permanent</div>
+                                <div class="jk-dl__val">
+                                    <span class="badge <?= $isSame ? 'bg-success' : 'bg-secondary' ?>">
+                                        <?= $isSame ? 'Yes' : 'No' ?>
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="jk-dl__row"><div class="jk-dl__key">State</div>
+                                <div class="jk-dl__val"><?= e($beneficiary['current_state_name'] ?? ($isSame ? ($beneficiary['state_name'] ?? '-') : '-')) ?></div></div>
+                            <div class="jk-dl__row"><div class="jk-dl__key">District</div>
+                                <div class="jk-dl__val"><?= e($beneficiary['current_district_name'] ?? ($isSame ? ($beneficiary['district_name'] ?? '-') : '-')) ?></div></div>
+                            <div class="jk-dl__row"><div class="jk-dl__key">Block</div>
+                                <div class="jk-dl__val"><?= e($beneficiary['current_block_name'] ?? ($isSame ? ($beneficiary['block_name'] ?? '-') : '-')) ?></div></div>
+                            <div class="jk-dl__row"><div class="jk-dl__key">Gram Panchayat</div>
+                                <div class="jk-dl__val"><?= e($beneficiary['current_gp_name'] ?? ($isSame ? ($beneficiary['gp_name'] ?? '-') : '-')) ?></div></div>
+                            <div class="jk-dl__row"><div class="jk-dl__key">Village</div>
+                                <div class="jk-dl__val"><?= e($beneficiary['current_village_display'] ?? ($isSame ? ($beneficiary['village_display'] ?? '-') : '-')) ?></div></div>
+                            <div class="jk-dl__row"><div class="jk-dl__key">Address</div>
+                                <div class="jk-dl__val"><?= e($beneficiary['current_address_line'] ?? ($isSame ? ($beneficiary['address_line'] ?? '-') : '-')) ?></div></div>
+                            <div class="jk-dl__row"><div class="jk-dl__key">Post Office</div>
+                                <div class="jk-dl__val"><?= e($beneficiary['current_post_office'] ?? ($isSame ? ($beneficiary['post_office'] ?? '-') : '-')) ?></div></div>
+                            <div class="jk-dl__row"><div class="jk-dl__key">PIN Code</div>
+                                <div class="jk-dl__val"><?= e($beneficiary['current_pincode'] ?? ($isSame ? ($beneficiary['pincode'] ?? '-') : '-')) ?></div></div>
+                            <div class="jk-dl__row"><div class="jk-dl__key">Rural / Urban</div>
+                                <div class="jk-dl__val"><?= e($beneficiary['current_area_type'] ?? ($isSame ? ($beneficiary['area_type'] ?? '-') : '-')) ?></div></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Collection & Record Details -->
+            <div class="col-lg-6">
+                <div class="jk-card h-100">
+                    <div class="jk-card__head"><h3 class="jk-card__title"><i class="bi bi-clock-history"></i>Collection &amp; Record Details</h3></div>
+                    <div class="jk-card__body">
+                        <div class="jk-dl">
                             <div class="jk-dl__row"><div class="jk-dl__key">Collected By</div>
                                 <div class="jk-dl__val">
                                     <?= e($beneficiary['field_user_name'] ?? '-') ?>
                                     <?php if (!empty($beneficiary['field_user_mobile'])): ?>
                                         <span class="d-block text-subtle tiny"><?= e($beneficiary['field_user_mobile']) ?></span>
+                                    <?php endif; ?>
+                                </div></div>
+                            <div class="jk-dl__row"><div class="jk-dl__key">Consent Obtained</div>
+                                <div class="jk-dl__val">
+                                    <span class="badge <?= !empty($beneficiary['consent_given']) ? 'bg-success' : 'bg-secondary' ?>">
+                                        <?= !empty($beneficiary['consent_given']) ? 'Yes' : 'No' ?>
+                                    </span>
+                                    <?php if (!empty($beneficiary['consent_date'])): ?>
+                                        <span class="d-block text-subtle tiny">on <?= fmt_date($beneficiary['consent_date']) ?></span>
                                     <?php endif; ?>
                                 </div></div>
                             <div class="jk-dl__row"><div class="jk-dl__key">Record Created</div>
@@ -219,6 +281,18 @@ require VIEW_PATH . '/partials/page-head.php'; ?>
                                         <span class="d-block text-subtle tiny">by <?= e($beneficiary['created_by_name']) ?></span>
                                     <?php endif; ?>
                                 </div></div>
+                            <?php if (!empty($beneficiary['updated_at'])): ?>
+                                <div class="jk-dl__row"><div class="jk-dl__key">Last Updated</div>
+                                    <div class="jk-dl__val"><?= (!str_starts_with((string)$beneficiary['updated_at'], '0000')) ? (new DateTimeImmutable($beneficiary['updated_at'], new DateTimeZone('UTC')))->setTimezone(new DateTimeZone('Asia/Kolkata'))->format('d-m-Y h:i A') : '-' ?>
+                                        <?php if (!empty($beneficiary['updated_by_name'])): ?>
+                                            <span class="d-block text-subtle tiny">by <?= e($beneficiary['updated_by_name']) ?></span>
+                                        <?php endif; ?>
+                                    </div></div>
+                            <?php endif; ?>
+                            <?php if (!empty($beneficiary['remarks'])): ?>
+                                <div class="jk-dl__row"><div class="jk-dl__key">Remarks</div>
+                                    <div class="jk-dl__val"><?= nl2br(e($beneficiary['remarks'])) ?></div></div>
+                            <?php endif; ?>
                         </div>
                     </div>
                 </div>

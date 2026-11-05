@@ -263,56 +263,107 @@ class MobileBeneficiary extends Model
         ];
     }
     public function findForUser(
-    int $beneficiaryId,
-    int $userId
-): ?array {
-    return $this->db->selectOne(
-        'SELECT
-            b.id,
-            b.beneficiary_code,
-            b.registration_date,
-            b.name,
-            b.relation_type,
-            b.relation_name,
-            b.father_name,
-            b.mother_name,
-            b.spouse_name,
-            b.gender,
-            b.dob,
-            b.age,
-            b.mobile,
-            b.alt_mobile,
-            b.aadhaar_last4,
-            b.has_aadhaar,
-            b.state_id,
-            b.district_id,
-            b.block_id,
-            b.gram_panchayat_id,
-            b.village_id,
-            b.village_name,
-            b.post_office,
-            b.address_line,
-            b.pincode,
-            b.area_type,
-            b.photo_path,
-            b.record_status,
-            b.assessment_status,
-            b.last_assessed_at,
-            b.last_matched_at,
-            b.consent_given,
-            b.consent_date,
-            b.remarks,
-            b.created_at,
-            b.updated_at
-        FROM beneficiaries b
-        WHERE b.id = :beneficiary_id
-          AND b.field_user_id = :user_id
-          AND b.deleted_at IS NULL
-        LIMIT 1',
-        [
-            'beneficiary_id' => $beneficiaryId,
-            'user_id' => $userId,
-        ]
-    );
-}
+        int $beneficiaryId,
+        int $userId
+    ): ?array {
+        $row = $this->db->selectOne(
+            'SELECT
+                b.id,
+                b.beneficiary_code,
+                b.registration_date,
+                b.name,
+                b.relation_type,
+                b.relation_name,
+                b.father_name,
+                b.mother_name,
+                b.spouse_name,
+                b.gender,
+                b.dob,
+                b.age,
+                b.mobile,
+                b.alt_mobile,
+                b.aadhaar_last4,
+                b.has_aadhaar,
+                b.state_id,
+                st.name AS state_name,
+                b.district_id,
+                d.name AS district_name,
+                b.block_id,
+                bl.name AS block_name,
+                b.gram_panchayat_id,
+                gp.name AS gram_panchayat_name,
+                b.village_id,
+                COALESCE(v.name, b.village_name) AS village_name,
+                b.post_office,
+                b.address_line,
+                b.pincode,
+                b.area_type,
+                b.same_as_permanent_address,
+                b.current_state_id,
+                cst.name AS current_state_name,
+                b.current_district_id,
+                cd.name AS current_district_name,
+                b.current_block_id,
+                cbl.name AS current_block_name,
+                b.current_gram_panchayat_id,
+                cgp.name AS current_gram_panchayat_name,
+                b.current_village_id,
+                COALESCE(cv.name, b.current_village_name) AS current_village_name,
+                b.current_post_office,
+                b.current_address_line,
+                b.current_pincode,
+                b.current_area_type,
+                b.photo_path,
+                b.record_status,
+                b.assessment_status,
+                b.last_assessed_at,
+                b.last_matched_at,
+                b.consent_given,
+                b.consent_date,
+                b.remarks,
+                b.created_at,
+                b.updated_at
+            FROM beneficiaries b
+            LEFT JOIN states st          ON st.id  = b.state_id
+            LEFT JOIN districts d        ON d.id   = b.district_id
+            LEFT JOIN blocks bl          ON bl.id  = b.block_id
+            LEFT JOIN gram_panchayats gp  ON gp.id  = b.gram_panchayat_id
+            LEFT JOIN villages v         ON v.id   = b.village_id
+            LEFT JOIN states cst         ON cst.id = b.current_state_id
+            LEFT JOIN districts cd       ON cd.id  = b.current_district_id
+            LEFT JOIN blocks cbl         ON cbl.id = b.current_block_id
+            LEFT JOIN gram_panchayats cgp ON cgp.id = b.current_gram_panchayat_id
+            LEFT JOIN villages cv        ON cv.id  = b.current_village_id
+            WHERE b.id = :beneficiary_id
+              AND b.field_user_id = :user_id
+              AND b.deleted_at IS NULL
+            LIMIT 1',
+            [
+                'beneficiary_id' => $beneficiaryId,
+                'user_id' => $userId,
+            ]
+        );
+
+        if (!$row) {
+            return null;
+        }
+
+        $row['id']                        = (int) $row['id'];
+        $row['age']                       = $row['age'] !== null ? (int) $row['age'] : null;
+        $row['has_aadhaar']               = (bool) $row['has_aadhaar'];
+        $row['state_id']                  = $row['state_id'] !== null ? (int) $row['state_id'] : null;
+        $row['district_id']               = $row['district_id'] !== null ? (int) $row['district_id'] : null;
+        $row['block_id']                  = $row['block_id'] !== null ? (int) $row['block_id'] : null;
+        $row['gram_panchayat_id']         = $row['gram_panchayat_id'] !== null ? (int) $row['gram_panchayat_id'] : null;
+        $row['village_id']                = $row['village_id'] !== null ? (int) $row['village_id'] : null;
+        $row['same_as_permanent_address'] = (bool) $row['same_as_permanent_address'];
+        $row['current_state_id']          = $row['current_state_id'] !== null ? (int) $row['current_state_id'] : null;
+        $row['current_district_id']       = $row['current_district_id'] !== null ? (int) $row['current_district_id'] : null;
+        $row['current_block_id']          = $row['current_block_id'] !== null ? (int) $row['current_block_id'] : null;
+        $row['current_gram_panchayat_id'] = $row['current_gram_panchayat_id'] !== null ? (int) $row['current_gram_panchayat_id'] : null;
+        $row['current_village_id']        = $row['current_village_id'] !== null ? (int) $row['current_village_id'] : null;
+        $row['consent_given']             = (bool) $row['consent_given'];
+
+        return $row;
+    }
 }

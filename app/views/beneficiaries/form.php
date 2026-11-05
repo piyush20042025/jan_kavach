@@ -12,6 +12,10 @@ $isEdit = !empty($beneficiary);
 $action = $isEdit ? url('/beneficiaries/' . (int)$beneficiary['id']) : url('/beneficiaries');
 $old    = $old ?? [];
 $errors = $errors ?? [];
+$currentDistricts = $currentDistricts ?? [];
+$currentBlocks    = $currentBlocks ?? [];
+$currentGps       = $currentGps ?? [];
+$currentVillages  = $currentVillages ?? [];
 
 $value = function (string $field, $default = '') use ($beneficiary, $old) {
     if (array_key_exists($field, $old)) {
@@ -165,7 +169,7 @@ require VIEW_PATH . '/partials/page-head.php';
 
     <!-- ===== Address (section 25) ===== -->
     <fieldset class="jk-fieldset">
-        <legend>Address</legend>
+        <legend>Permanent Address</legend>
         <div class="row g-3">
             <div class="col-md-4">
                 <label class="form-label" for="state_id">State <span class="req">*</span></label>
@@ -268,6 +272,130 @@ require VIEW_PATH . '/partials/page-head.php';
                 <select class="form-select" id="area_type" name="area_type" required>
                     <option value="Rural" <?= $value('area_type', 'Rural') === 'Rural' ? 'selected' : '' ?>>Rural</option>
                     <option value="Urban" <?= $value('area_type') === 'Urban' ? 'selected' : '' ?>>Urban</option>
+                </select>
+            </div>
+        </div>
+    </fieldset>
+
+    <!-- ===== Current Address ===== -->
+    <fieldset class="jk-fieldset" id="currentAddressSection">
+        <legend>Current Address</legend>
+
+        <div class="d-flex justify-content-end align-items-center mb-2">
+            <div class="form-check m-0">
+                <input class="form-check-input" type="checkbox" id="same_as_permanent_address"
+                       name="same_as_permanent_address" value="1"
+                       <?= (int)$value('same_as_permanent_address', $isEdit ? 0 : 1) === 1 ? 'checked' : '' ?>>
+                <label class="form-label mb-0" for="same_as_permanent_address">
+                    Same as Permanent Address
+                </label>
+            </div>
+        </div>
+
+        <div class="row g-3" id="currentAddressFields">
+            <div class="col-md-4">
+                <label class="form-label" for="current_state_id">State <span class="req">*</span></label>
+                <select class="form-select<?= $invalid('current_state_id') ?>" id="current_state_id" name="current_state_id">
+                    <option value="">Select State</option>
+                    <?php foreach ($states as $id => $name): ?>
+                        <option value="<?= (int)$id ?>" <?= (int)$value('current_state_id') === (int)$id ? 'selected' : '' ?>>
+                            <?= e($name) ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+                <?= $feedback('current_state_id') ?>
+            </div>
+
+            <div class="col-md-4">
+                <label class="form-label" for="current_district_id">District <span class="req">*</span></label>
+                <select class="form-select<?= $invalid('current_district_id') ?>" id="current_district_id" name="current_district_id"
+                        data-depends-on="current_state_id" data-server-filled="1"
+                        data-endpoint="/geo/districts/{id}" data-placeholder="Select District">
+                    <option value="">Select District</option>
+                    <?php foreach (($currentDistricts ?? []) as $id => $name): ?>
+                        <option value="<?= (int)$id ?>" <?= (int)$value('current_district_id') === (int)$id ? 'selected' : '' ?>>
+                            <?= e($name) ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+                <?= $feedback('current_district_id') ?>
+            </div>
+
+            <div class="col-md-4">
+                <label class="form-label" for="current_block_id">Block</label>
+                <select class="form-select<?= $invalid('current_block_id') ?>" id="current_block_id" name="current_block_id"
+                        data-depends-on="current_district_id" data-server-filled="1"
+                        data-endpoint="/geo/blocks/{id}" data-placeholder="Select Block">
+                    <option value="">Select Block</option>
+                    <?php foreach (($currentBlocks ?? []) as $block): ?>
+                        <option value="<?= (int)$block['id'] ?>" <?= (int)$value('current_block_id') === (int)$block['id'] ? 'selected' : '' ?>>
+                            <?= e($block['name']) ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+                <?= $feedback('current_block_id') ?>
+            </div>
+
+            <div class="col-md-4">
+                <label class="form-label" for="current_gram_panchayat_id">Gram Panchayat</label>
+                <select class="form-select<?= $invalid('current_gram_panchayat_id') ?>" id="current_gram_panchayat_id" name="current_gram_panchayat_id"
+                        data-depends-on="current_block_id" data-server-filled="1"
+                        data-endpoint="/geo/gram-panchayats/{id}" data-placeholder="Select Gram Panchayat">
+                    <option value="">Select Gram Panchayat</option>
+                    <?php foreach (($currentGps ?? []) as $gp): ?>
+                        <option value="<?= (int)$gp['id'] ?>" <?= (int)$value('current_gram_panchayat_id') === (int)$gp['id'] ? 'selected' : '' ?>>
+                            <?= e($gp['name']) ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+                <?= $feedback('current_gram_panchayat_id') ?>
+            </div>
+
+            <div class="col-md-4">
+                <label class="form-label" for="current_village_id">Village</label>
+                <select class="form-select<?= $invalid('current_village_id') ?>" id="current_village_id" name="current_village_id"
+                        data-depends-on="current_gram_panchayat_id" data-server-filled="1"
+                        data-endpoint="/geo/villages/{id}" data-placeholder="Select Village">
+                    <option value="">Select Village</option>
+                    <?php foreach (($currentVillages ?? []) as $village): ?>
+                        <option value="<?= (int)$village['id'] ?>" <?= (int)$value('current_village_id') === (int)$village['id'] ? 'selected' : '' ?>>
+                            <?= e($village['name']) ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+                <?= $feedback('current_village_id') ?>
+            </div>
+
+            <div class="col-md-4">
+                <label class="form-label" for="current_village_name">Village (if not listed)</label>
+                <input type="text" class="form-control" id="current_village_name" name="current_village_name"
+                       maxlength="150" value="<?= e($value('current_village_name')) ?>">
+            </div>
+
+            <div class="col-md-4">
+                <label class="form-label" for="current_post_office">Post Office</label>
+                <input type="text" class="form-control" id="current_post_office" name="current_post_office"
+                       maxlength="120" value="<?= e($value('current_post_office')) ?>">
+            </div>
+
+            <div class="col-md-6">
+                <label class="form-label" for="current_address_line">Address</label>
+                <input type="text" class="form-control" id="current_address_line" name="current_address_line"
+                       maxlength="255" value="<?= e($value('current_address_line')) ?>">
+            </div>
+
+            <div class="col-md-3">
+                <label class="form-label" for="current_pincode">PIN Code</label>
+                <input type="text" class="form-control<?= $invalid('current_pincode') ?>" id="current_pincode" name="current_pincode"
+                       maxlength="6" inputmode="numeric" value="<?= e($value('current_pincode')) ?>">
+                <?= $feedback('current_pincode') ?>
+            </div>
+
+            <div class="col-md-3">
+                <label class="form-label" for="current_area_type">Rural / Urban <span class="req">*</span></label>
+                <select class="form-select" id="current_area_type" name="current_area_type">
+                    <option value="Rural" <?= $value('current_area_type', 'Rural') === 'Rural' ? 'selected' : '' ?>>Rural</option>
+                    <option value="Urban" <?= $value('current_area_type') === 'Urban' ? 'selected' : '' ?>>Urban</option>
                 </select>
             </div>
         </div>
@@ -432,6 +560,96 @@ require VIEW_PATH . '/partials/page-head.php';
     district.addEventListener(event, check);
     document.getElementById('mobile').addEventListener(event, check);
   });
+
+  // -------------------------------------------------------------------
+  // Current Address synchronization with Permanent Address
+  // -------------------------------------------------------------------
+  const sameCheckbox = document.getElementById('same_as_permanent_address');
+  const perm = {
+    state: document.getElementById('state_id'),
+    district: document.getElementById('district_id'),
+    block: document.getElementById('block_id'),
+    gp: document.getElementById('gram_panchayat_id'),
+    village: document.getElementById('village_id'),
+    villageName: document.getElementById('village_name'),
+    postOffice: document.getElementById('post_office'),
+    addressLine: document.getElementById('address_line'),
+    pincode: document.getElementById('pincode'),
+    areaType: document.getElementById('area_type')
+  };
+
+  const curr = {
+    state: document.getElementById('current_state_id'),
+    district: document.getElementById('current_district_id'),
+    block: document.getElementById('current_block_id'),
+    gp: document.getElementById('current_gram_panchayat_id'),
+    village: document.getElementById('current_village_id'),
+    villageName: document.getElementById('current_village_name'),
+    postOffice: document.getElementById('current_post_office'),
+    addressLine: document.getElementById('current_address_line'),
+    pincode: document.getElementById('current_pincode'),
+    areaType: document.getElementById('current_area_type')
+  };
+
+  let isSyncing = false;
+
+  function copySelect(source, target) {
+    if (!source || !target) return;
+    target.innerHTML = source.innerHTML;
+    target.value = source.value;
+    target.disabled = source.disabled;
+  }
+
+  function syncPermToCurr() {
+    if (!sameCheckbox || !sameCheckbox.checked) return;
+    isSyncing = true;
+    if (curr.state && perm.state) curr.state.value = perm.state.value;
+    copySelect(perm.district, curr.district);
+    copySelect(perm.block, curr.block);
+    copySelect(perm.gp, curr.gp);
+    copySelect(perm.village, curr.village);
+    if (curr.villageName && perm.villageName) curr.villageName.value = perm.villageName.value;
+    if (curr.postOffice && perm.postOffice) curr.postOffice.value = perm.postOffice.value;
+    if (curr.addressLine && perm.addressLine) curr.addressLine.value = perm.addressLine.value;
+    if (curr.pincode && perm.pincode) curr.pincode.value = perm.pincode.value;
+    if (curr.areaType && perm.areaType) curr.areaType.value = perm.areaType.value;
+    isSyncing = false;
+  }
+
+  if (sameCheckbox) {
+    sameCheckbox.addEventListener('change', function () {
+      if (sameCheckbox.checked) {
+        syncPermToCurr();
+      }
+    });
+
+    Object.values(perm).forEach(function (el) {
+      if (!el) return;
+      ['input', 'change'].forEach(function (ev) {
+        el.addEventListener(ev, function () {
+          if (sameCheckbox.checked) {
+            syncPermToCurr();
+          }
+        });
+      });
+    });
+
+    Object.values(curr).forEach(function (el) {
+      if (!el) return;
+      ['input', 'change'].forEach(function (ev) {
+        el.addEventListener(ev, function () {
+          if (isSyncing) return;
+          if (sameCheckbox.checked) {
+            sameCheckbox.checked = false;
+          }
+        });
+      });
+    });
+
+    if (sameCheckbox.checked && perm.state && perm.state.value && (!curr.state.value || curr.state.value === '')) {
+      syncPermToCurr();
+    }
+  }
 })();
 </script>
 <?php \JanKavach\Core\View::endSection(); ?>
